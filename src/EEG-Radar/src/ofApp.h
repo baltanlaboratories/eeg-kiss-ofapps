@@ -80,4 +80,6 @@ private:
 	int iSampleCounters[2][4];
 
 	ofCairoRenderer renderer;
+	int		iCounter;
+	bool	bDemo;
 };
