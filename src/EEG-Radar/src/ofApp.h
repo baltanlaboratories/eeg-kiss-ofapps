@@ -19,7 +19,6 @@ public:
 	void windowResized(int w, int h);
 	void dragEvent(ofDragInfo dragInfo);
 	void gotMessage(ofMessage msg);
-	void printImage();
 
 private:
 	struct ApplicationSettings {
@@ -49,9 +48,6 @@ private:
 	int         width, height;
 	bool	    bSmooth;
 	int         iSampleCounter;
-	int         iNrOfSamples;
-	int         iNrOfHeadsets;
-	int         iNrOfChannels;
 	float***    fSamples;
 	float       fRadius;
 	float       fMinRadius;
@@ -73,13 +69,14 @@ private:
 	float getOscArg(const ofxOscMessage& m, int argIndex);
 	void  addValueToChannelBuffer(DataTypes dataType, const string& pat, float value);
 	void  saveScreenshot(ofImage image, string filename);
+	void  printImage();
 
-	ofxOscReceiver receiver;
-	ofImage screenImg;
+	ofxOscReceiver	receiver;
+	ofImage			screenImg;
 
 	int iSampleCounters[2][4];
 
-	ofCairoRenderer renderer;
 	int		iCounter;
 	bool	bDemo;
+	int		m_threadCounter;
 };

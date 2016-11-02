@@ -3,6 +3,7 @@
 #include "ofApp.h"
 #include <math.h>
 #include <assert.h>
+#include "ImageExporter.h"
 
 const int kOscReceivePort = 7110;
 
@@ -103,7 +104,7 @@ void ofApp::update()
 	//        ofBackground(ofColor::black);
 	
 	if (bDemo) {
-		for (int i = 0; i < 10; i++) {
+		for (int i = 0; i < 5; i++) {
 			iCounter++;
 			addValueToChannelBuffer(IMEC_EEG_DATA, "/EEG_1/channel_1", std::sin(iCounter / 10.));
 			addValueToChannelBuffer(IMEC_EEG_DATA, "/EEG_1/channel_2", std::sin(iCounter / 12.));
@@ -224,7 +225,10 @@ void ofApp::draw()
 		ss << "(d) decrease magnification" << endl;
 		ss << "(r) reset magnification" << endl;
 		ss << "(c) capture screenshot" << endl;
+		ss << "(l) export separate images" << endl;
+#ifdef _DEBUG
 		ss << "(p) play/stop demo" << endl;
+#endif
 
 		ofSetColor(ofColor::white);
 		ofDrawBitmapString(ss.str().c_str(), 20, 20);
@@ -285,9 +289,6 @@ void ofApp::addValueToChannelBuffer(DataTypes dataType, const string& destinatio
 	switch (dataType)
 	{
 	case IMEC_EEG_DATA:
-		//assert(eegSettings.nrOfHeadsets == 2);
-		//assert(eegSettings.nrOfChannels == 4);
-
 		int headsetId = -1;
 		if (startsWith(destination, "/EEG_0/"))
 		{
@@ -387,26 +388,52 @@ void ofApp::saveScreenshot(ofImage image, string filename)
 		file.open("..\\..\\Source\\subfolder.txt");
 		ofBuffer buff = file.readToBuffer();
 		file.close();
-		cout << buff << endl;
+		//cout << buff << endl;
 		path = "..\\..\\Source\\records\\";
 		if (!dir.doesDirectoryExist(path, true))
 		{
 			dir.createDirectory(path, true);
-			cout << path << endl;
+			//cout << path << endl;
 		}
 		path += buff;
 		if (!dir.doesDirectoryExist(path, true))
 		{
 			dir.createDirectory(path, true);
-			cout << path << endl;
+			//cout << path << endl;
 		}
 		path += "\\";
 	}
 	path += ofGetTimestampString("%y%m%d_%H%M%S_");
 	path += filename;
-	cout << path << endl;
+	//cout << path << endl;
 
 	image.saveImage(path);
+}
+
+void ofApp::printImage()
+{
+	std::thread thread([this] {
+
+		std::cout << eegSettings.nrOfHeadsets << " " << eegSettings.nrOfChannels << " " << eegSettings.nrOfSamples << std::endl;
+		std::vector<std::vector<std::vector<float>>> data;
+		for (int headset = 0; headset < eegSettings.nrOfHeadsets; headset++) {
+			std::vector<std::vector<float>> head;
+			for (int channel = 0; channel < eegSettings.nrOfChannels; channel++) {
+				head.push_back(std::vector<float>(fSamples[headset][channel], fSamples[headset][channel] + eegSettings.nrOfSamples));
+			}
+			data.push_back(head);
+		}
+
+		std::vector<std::vector<int>> counters;
+		for (int i = 0; i < eegSettings.nrOfHeadsets; i++) {
+			counters.push_back(std::vector<int>(iSampleCounters[i], iSampleCounters[i] + eegSettings.nrOfChannels));
+		}
+
+		m_threadCounter++;
+		ImageExporter::exportImages(data, fRadius, fMinRadius, fMagnification, samplesToFade, counters);
+		m_threadCounter--;
+	});
+	thread.detach();
 }
 
 //--------------------------------------------------------------
@@ -453,16 +480,18 @@ void ofApp::keyPressed(int key)
 		break;
 	case 'c':
 		// capture screenshot
-		//TODO: Also put screenshot on separate thread
-		//TODO: Check wether export is cuurently busy. If so: don't start new export
 		screenImg.grabScreen(0, 0, width, height);
 		saveScreenshot(screenImg, "screenshot.png");
+		break;
+	case 'l':
 		printImage();
 		break;
+#ifdef _DEBUG
 	case 'p':
 		//TODO: reset buffers
 		bDemo = !bDemo;
 		break;
+#endif
 	}
 }
 
@@ -509,93 +538,4 @@ void ofApp::gotMessage(ofMessage msg) {
 //--------------------------------------------------------------
 void ofApp::dragEvent(ofDragInfo dragInfo) {
 
-}
-
-void ofApp::printImage() {
-	auto t = std::thread([this] {
-		std::string timestampString = ofGetTimestampString();
-
-		for (int hs = 0; hs < eegSettings.nrOfHeadsets; hs++)
-		{
-			char iStr[4];
-			itoa(hs, iStr, 4);
-			std::string filename = "screenshot-" + timestampString + "_" + iStr + ".png";
-			double SIZE = 4096;
-
-			renderer.setup(filename, ofCairoRenderer::Type::IMAGE, false, false, ofRectangle(0, 0, SIZE, SIZE));
-
-			renderer.background(0);
-
-			double l_ratio = 2.2;
-
-			double l_radius = fRadius * l_ratio;
-			double l_minRadius = fMinRadius * l_ratio;
-			double l_magnification = fMagnification * l_ratio;
-			double l_centerX = SIZE / 2;
-			double l_centerY = SIZE / 2;
-
-			for (int channel = 0; channel < eegSettings.nrOfChannels; channel++)
-			{
-				float fInnerRadius = l_minRadius + channel * l_radius * 1.25;
-
-				for (int i = samplesToFade; i < eegSettings.nrOfSamples; i++)
-				{
-					int alpha = (i - samplesToFade) * 255 / (eegSettings.nrOfSamples - samplesToFade);
-
-					if (hs)
-						renderer.setColor(ofColor::white, alpha);
-					else
-						renderer.setColor(ofColor::green, alpha);
-
-					int sampleIndex = (i + iSampleCounters[hs][channel] + eegSettings.nrOfSamples) % eegSettings.nrOfSamples;
-					float s1 = fSamples[hs][channel][sampleIndex];
-					float s2 = fSamples[hs][channel][(sampleIndex + 1) % eegSettings.nrOfSamples];
-
-					float amplitude1 = fInnerRadius + l_radius * s1;
-					float amplitude2 = fInnerRadius + l_radius * s2;
-					float x1, y1, x2, y2;
-
-					float r1 = (((float)(sampleIndex) / eegSettings.nrOfSamples)) * 2. * PI;
-					float r2 = (((float)((sampleIndex + 1) % eegSettings.nrOfSamples)) / eegSettings.nrOfSamples) * 2. * PI;
-
-					x1 = l_centerX + amplitude1 * sin(r1) * l_magnification;
-					y1 = l_centerY + amplitude1 * cos(r1) * l_magnification;
-					x2 = l_centerX + amplitude2 * sin(r2) * l_magnification;
-					y2 = l_centerY + amplitude2 * cos(r2) * l_magnification;
-
-					renderer.drawLine(x1, y1, 0, x2, y2, 0);
-
-					if (!hs && (channel == 3))
-					{
-						if (bStartKiss && (sampleIndex == iStartKissIndex))
-						{
-							x1 = l_centerX;
-							y1 = l_centerY;
-							x2 = x1 + amplitude1 * sin(r1) * l_magnification * 1.5;
-							y2 = y1 + amplitude1 * cos(r1) * l_magnification * 1.5;
-
-							renderer.setColor(ofColor::yellow, alpha);
-							renderer.setLineWidth(2.0 * l_ratio);
-							renderer.drawLine(x1, y1, 0, x2, y2, 0);
-							renderer.setLineWidth(1.0 * l_ratio);
-						}
-						if (bStopKiss && (sampleIndex == iStopKissIndex))
-						{
-							x1 = l_centerX;
-							y1 = l_centerY;
-							x2 = x1 + amplitude1 * sin(r1) * l_magnification * 1.5;
-							y2 = y1 + amplitude1 * cos(r1) * l_magnification * 1.5;
-
-							renderer.setColor(ofColor::cyan, alpha);
-							renderer.setLineWidth(2.0 * l_ratio);
-							renderer.drawLine(x1, y1, 0, x2, y2, 0);
-							renderer.setLineWidth(1.0 * l_ratio);
-						}
-					}
-				}
-			}
-			renderer.close();
-		}
-	});
-	t.detach();
 }
