@@ -4,7 +4,7 @@
 
 int ImageExporter::m_activeThreads = 0;
 
-void ImageExporter::exportImages(
+void ImageExporter::exportVectorImages(
 	std::vector<std::vector<std::vector<float>>> data
 	,float fRadius
 	,float fMinRadius

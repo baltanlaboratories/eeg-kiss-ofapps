@@ -69,7 +69,7 @@ private:
 	float getOscArg(const ofxOscMessage& m, int argIndex);
 	void  addValueToChannelBuffer(DataTypes dataType, const string& pat, float value);
 	void  saveScreenshot(ofImage image, string filename);
-	void  printImage();
+	void  printVectorImage();
 
 	ofxOscReceiver	receiver;
 	ofImage			screenImg;

@@ -3,7 +3,7 @@
 class ImageExporter
 {
 public:
-	static void exportImages(
+	static void exportVectorImages(
 		std::vector<std::vector<std::vector<float>>> data
 		,float fRadius
 		,float fMinRadius
