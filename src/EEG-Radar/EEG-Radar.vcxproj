@@ -93,7 +93,7 @@
       <Optimization>Disabled</Optimization>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <PreprocessorDefinitions>%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <WarningLevel>Level3</WarningLevel>
       <AdditionalIncludeDirectories>
 C:\openframeworks\addons\ofxOsc\src;
@@ -207,6 +207,7 @@ C:\openframeworks\addons\ofxOsc\libs\oscpack\src\osc;%(AdditionalIncludeDirector
     <ClCompile Include="C:\openframeworks\addons\ofxOsc\src\ofxOscParameterSync.cpp" />
     <ClCompile Include="C:\openframeworks\addons\ofxOsc\src\ofxOscReceiver.cpp" />
     <ClCompile Include="C:\openframeworks\addons\ofxOsc\src\ofxOscSender.cpp" />
+    <ClCompile Include="src\ImageExporter.cpp" />
     <ClCompile Include="src\main.cpp" />
     <ClCompile Include="src\ofApp.cpp" />
   </ItemGroup>
@@ -231,6 +232,7 @@ C:\openframeworks\addons\ofxOsc\libs\oscpack\src\osc;%(AdditionalIncludeDirector
     <ClInclude Include="C:\openframeworks\addons\ofxOsc\src\ofxOscParameterSync.h" />
     <ClInclude Include="C:\openframeworks\addons\ofxOsc\src\ofxOscReceiver.h" />
     <ClInclude Include="C:\openframeworks\addons\ofxOsc\src\ofxOscSender.h" />
+    <ClInclude Include="src\ImageExporter.h" />
     <ClInclude Include="src\ofApp.h" />
   </ItemGroup>
   <ItemGroup>
