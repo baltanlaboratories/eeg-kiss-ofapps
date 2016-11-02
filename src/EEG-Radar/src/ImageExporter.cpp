@@ -23,11 +23,11 @@ void ImageExporter::exportImages(
 
 		char iStr[4];
 		itoa(hs, iStr, 4);
-		std::string filename = "screenshot-" + timestampString + "_" + iStr + ".png";
+		std::string filename = "screenshot-" + timestampString + "_" + iStr + ".svg";
 		double SIZE = 4096;
 		double l_ratio = 2.2;
 
-		renderer.setup(filename, ofCairoRenderer::Type::IMAGE, false, false, ofRectangle(0, 0, SIZE, SIZE));
+		renderer.setup(filename, ofCairoRenderer::Type::SVG, false, false, ofRectangle(0, 0, SIZE, SIZE));
 
 		renderer.background(0);
 
@@ -45,7 +45,7 @@ void ImageExporter::exportImages(
 
 			float fInnerRadius = l_minRadius + channel * l_radius * 1.25;
 
-			for (int i = samplesToFade; i < chan.size(); i++)
+			for (int i = samplesToFade; i < chan.size() - 1; i++)
 			{
 				int alpha = (i - samplesToFade) * 255 / (chan.size() - samplesToFade);
 

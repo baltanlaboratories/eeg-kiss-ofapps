@@ -410,7 +410,7 @@ void ofApp::saveScreenshot(ofImage image, string filename)
 	image.saveImage(path);
 }
 
-void ofApp::printImage()
+void ofApp::printVectorImage()
 {
 	std::thread thread([this] {
 
@@ -430,7 +430,7 @@ void ofApp::printImage()
 		}
 
 		m_threadCounter++;
-		ImageExporter::exportImages(data, fRadius, fMinRadius, fMagnification, samplesToFade, counters);
+		ImageExporter::exportVectorImages(data, fRadius, fMinRadius, fMagnification, samplesToFade, counters);
 		m_threadCounter--;
 	});
 	thread.detach();
@@ -483,8 +483,8 @@ void ofApp::keyPressed(int key)
 		screenImg.grabScreen(0, 0, width, height);
 		saveScreenshot(screenImg, "screenshot.png");
 		break;
-	case 'l':
-		printImage();
+	case 'v':
+		printVectorImage();
 		break;
 #ifdef _DEBUG
 	case 'p':
