@@ -225,7 +225,7 @@ void ofApp::draw()
 		ss << "(d) decrease magnification" << endl;
 		ss << "(r) reset magnification" << endl;
 		ss << "(c) capture screenshot" << endl;
-		ss << "(l) export separate images" << endl;
+		ss << "(v) export separate images" << endl;
 #ifdef _DEBUG
 		ss << "(p) play/stop demo" << endl;
 #endif
