@@ -18,15 +18,15 @@ void ImageExporter::exportVectorImages(
 
 	for (int hs = 0; hs < data.size(); hs++)
 	{
+        std::stringstream ss;
+        
 		std::cout << "headset: " << hs << std::endl;
 		auto head = data.at(hs);
 
-		// char iStr[4];
-		// itoa(hs, iStr, 4);
-
-		std::stringstream ss;
-		ss << "screenshot-" << timestampString << "_" << hs << ".svg";
-		std::string filename = ss.str();
+		//char iStr[4];
+		//itoa(hs, iStr, 4);
+        ss << "screenshot-" << timestampString << "_" << hs << ".svg";
+        std::string filename = ss.str();
 		double SIZE = 4096;
 		double l_ratio = 2.2;
 

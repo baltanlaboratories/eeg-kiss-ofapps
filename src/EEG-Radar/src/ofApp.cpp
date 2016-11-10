@@ -14,6 +14,8 @@ void ofApp::setup() {
 	iFrameRate = appSettings.framerate;
 	width = ofGetWidth();
 	height = ofGetHeight();
+    
+    fSignalScalingFactor = 1.0 / 1024.0;  // seems like values coming from MUSE are 10-bit (lick finger, stick finger in air, guess scaling factor)
 
 	ofBackground(0, 0, 0);
 	ofSetCircleResolution(appSettings.circleResolution);
@@ -91,17 +93,55 @@ void ofApp::update()
 		string pattern = m.getAddress();
 
 		// get the value of the pattern
-		float value = getOscArg(m, 0);
-
+		float v0 = getOscArg(m, 0);
+        float v1 = getOscArg(m, 1);
+        float v2 = getOscArg(m, 2);
+        float v3 = getOscArg(m, 3);
+        
 		// Parse IMEC EEG data
-		addValueToChannelBuffer(IMEC_EEG_DATA, pattern, value);
+		// addValueToChannelBuffer(IMEC_EEG_DATA, pattern, value);
+
+        EEGDevice device = NONE;
+        if(m.getAddress() == "/muse/1/eeg") {
+            device = FIRST;
+        } else if (m.getAddress() == "/muse/2/eeg") {
+            device = SECOND;
+        } else {
+             // unknonwn message, we print the address for debugging purposes
+            string msg_string;
+            msg_string = m.getAddress();
+            msg_string += ": ";
+            for(int i = 0; i < m.getNumArgs(); i++){
+                // get the argument type
+                msg_string += m.getArgTypeName(i);
+                msg_string += ":";
+                // display the argument - make sure we get the right type
+                if(m.getArgType(i) == OFXOSC_TYPE_INT32){
+                    msg_string += ofToString(m.getArgAsInt32(i));
+                }
+                else if(m.getArgType(i) == OFXOSC_TYPE_FLOAT){
+                    msg_string += ofToString(m.getArgAsFloat(i));
+                }
+                else if(m.getArgType(i) == OFXOSC_TYPE_STRING){
+                    msg_string += m.getArgAsString(i);
+                }
+                else{
+                    msg_string += "unknown";
+                }
+            }
+            
+            ofLogNotice() << "unknown OSC >> " << msg_string;
+        }
+        
+        addMultichannelSample(MUSE_EEG_DATA, device, v0, v1, v2, v3);
+        
 	}
 
 	//    if (bKissing)
 	//        ofBackground(ofColor::red);
 	//    else
 	//        ofBackground(ofColor::black);
-
+	
 	if (bDemo) {
 		for (int i = 0; i < 5; i++) {
 			iCounter++;
@@ -143,6 +183,9 @@ void ofApp::draw()
 				int sampleIndex = (i + iSampleCounters[hs][channel] + eegSettings.nrOfSamples) % eegSettings.nrOfSamples;
 				float s1 = fSamples[hs][channel][sampleIndex];
 				float s2 = fSamples[hs][channel][(sampleIndex + 1) % eegSettings.nrOfSamples];
+                
+                s1 *= fSignalScalingFactor;
+                s2 *= fSignalScalingFactor;
 
 				float amplitude1 = fInnerRadius + fRadius * s1;
 				float amplitude2 = fInnerRadius + fRadius * s2;
@@ -213,7 +256,8 @@ void ofApp::draw()
 		stringstream ss;
 		ss << "Framerate: " << ofToString(ofGetFrameRate(), 0)
 			<< " Fade: " << samplesToFade
-			<< " Magnification: " << ofToString(fMagnification, 2) << endl;
+			<< " Magnification: " << ofToString(fMagnification, 2)
+            << " Signal scaling: " << ofToString(fSignalScalingFactor, 2) << endl;
 		ss << "(i) toggle this menu" << endl;
 		ss << "(f) toggle full screen" << endl;
 		ss << "(q) increase fade" << endl;
@@ -225,6 +269,8 @@ void ofApp::draw()
 		ss << "(r) reset magnification" << endl;
 		ss << "(c) capture screenshot" << endl;
 		ss << "(l) export separate images" << endl;
+        ss << "([) decrease signal scaling factor" << endl;
+        ss << "(]) increase signal scaling factor" << endl;
 #ifdef _DEBUG
 		ss << "(p) play/stop demo" << endl;
 #endif
@@ -283,6 +329,17 @@ void addToPolyline(float value, ofPolyline& pl, int yOffset)
 /***************************************************************
 * Determines the channel and adds the value to the associated buffer
 **************************************************************/
+void  ofApp::addMultichannelSample(DataTypes dataType, EEGDevice device, float v0, float v1, float v2, float v3) {
+    switch(dataType) {
+        case MUSE_EEG_DATA:
+            addSample(device, 0, v0);
+            addSample(device, 1, v1);
+            addSample(device, 2, v2);
+            addSample(device, 3, v3);
+            break;
+    }
+}
+
 void ofApp::addValueToChannelBuffer(DataTypes dataType, const string& destination, float value)
 {
 	switch (dataType)
@@ -482,6 +539,12 @@ void ofApp::keyPressed(int key)
 		screenImg.grabScreen(0, 0, width, height);
 		saveScreenshot(screenImg, "screenshot.png");
 		break;
+    case '[':
+        fSignalScalingFactor -= 1/100;
+        break;
+    case ']':
+        fSignalScalingFactor += 1/100;
+        break;
 	case 'v':
 		printVectorImage();
 		break;

@@ -2,6 +2,7 @@
 
 #include "ofxOsc.h"
 
+
 class ofApp : public ofBaseApp {
 
 public:
@@ -28,6 +29,18 @@ private:
 		int circleResolution = 50;
 	};
 
+    // abstraction for EEG devices within the installation
+    enum EEGDevice {
+        NONE = -1,
+        FIRST = 0,
+        SECOND = 1
+    };
+    
+    enum DataTypes {
+        IMEC_EEG_DATA,
+        MUSE_EEG_DATA
+    };
+    
 	struct EEGSettings {
 		int nrOfHeadsets = 2;
 		int nrOfChannels = 4;
@@ -36,10 +49,6 @@ private:
 		string headsetPatternPrefix = "/EEG_";
 		string channelPatternPrefix = "channel_";
 		string markersPattern = "/markers";
-	};
-
-	enum DataTypes {
-		IMEC_EEG_DATA
 	};
 
 	ApplicationSettings appSettings;
@@ -65,11 +74,24 @@ private:
 	int         iFrameRate;     // max frame rate
 	float       fMagnification; // magnification factor of the radar
 	float       initialMagnification;
+    
+    float       fSignalScalingFactor;
 
 	float getOscArg(const ofxOscMessage& m, int argIndex);
 	void  addValueToChannelBuffer(DataTypes dataType, const string& pat, float value);
+    void  addMultichannelSample(DataTypes dataType, EEGDevice device, float vch1, float vch2, float vch3, float vch4);
 	void  saveScreenshot(ofImage image, string filename);
 	void  printVectorImage();
+    
+    /// add sample to correct device-channel buffer
+    void addSample(EEGDevice device, int ch, float val) {
+        
+        if(device > eegSettings.nrOfHeadsets) return;
+        if(ch > eegSettings.nrOfChannels) return;
+        
+        iSampleCounters[device][ch] = (iSampleCounters[device][ch] + 1) % eegSettings.nrOfSamples;
+        fSamples[device][ch][iSampleCounters[device][ch]] = val;
+    }
 
 	ofxOscReceiver	receiver;
 	ofImage			screenImg;
