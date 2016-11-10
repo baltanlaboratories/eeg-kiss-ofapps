@@ -1,5 +1,4 @@
 
-#include <winsock2.h>
 #include "ofApp.h"
 #include <math.h>
 #include <assert.h>
@@ -102,7 +101,7 @@ void ofApp::update()
 	//        ofBackground(ofColor::red);
 	//    else
 	//        ofBackground(ofColor::black);
-	
+
 	if (bDemo) {
 		for (int i = 0; i < 5; i++) {
 			iCounter++;
