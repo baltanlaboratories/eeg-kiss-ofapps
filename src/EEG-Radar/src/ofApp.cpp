@@ -4,6 +4,8 @@
 #include <assert.h>
 #include "ImageExporter.h"
 
+#define _DEBUG
+
 const int kOscReceivePort = 7110;
 
 //--------------------------------------------------------------
@@ -15,7 +17,7 @@ void ofApp::setup() {
 	width = ofGetWidth();
 	height = ofGetHeight();
     
-    fSignalScalingFactor = 1.0 / 1024.0;  // seems like values coming from MUSE are 10-bit (lick finger, stick finger in air, guess scaling factor)
+    fSignalScalingFactor = 1.0;
 
 	ofBackground(0, 0, 0);
 	ofSetCircleResolution(appSettings.circleResolution);
@@ -89,52 +91,7 @@ void ofApp::update()
 		ofxOscMessage m;
 		receiver.getNextMessage(&m);
 
-		// get the current pattern
-		string pattern = m.getAddress();
-
-		// get the value of the pattern
-		float v0 = getOscArg(m, 0);
-        float v1 = getOscArg(m, 1);
-        float v2 = getOscArg(m, 2);
-        float v3 = getOscArg(m, 3);
-        
-		// Parse IMEC EEG data
-		// addValueToChannelBuffer(IMEC_EEG_DATA, pattern, value);
-
-        EEGDevice device = NONE;
-        if(m.getAddress() == "/muse/1/eeg") {
-            device = FIRST;
-        } else if (m.getAddress() == "/muse/2/eeg") {
-            device = SECOND;
-        } else {
-             // unknonwn message, we print the address for debugging purposes
-            string msg_string;
-            msg_string = m.getAddress();
-            msg_string += ": ";
-            for(int i = 0; i < m.getNumArgs(); i++){
-                // get the argument type
-                msg_string += m.getArgTypeName(i);
-                msg_string += ":";
-                // display the argument - make sure we get the right type
-                if(m.getArgType(i) == OFXOSC_TYPE_INT32){
-                    msg_string += ofToString(m.getArgAsInt32(i));
-                }
-                else if(m.getArgType(i) == OFXOSC_TYPE_FLOAT){
-                    msg_string += ofToString(m.getArgAsFloat(i));
-                }
-                else if(m.getArgType(i) == OFXOSC_TYPE_STRING){
-                    msg_string += m.getArgAsString(i);
-                }
-                else{
-                    msg_string += "unknown";
-                }
-            }
-            
-            ofLogNotice() << "unknown OSC >> " << msg_string;
-        }
-        
-        addMultichannelSample(MUSE_EEG_DATA, device, v0, v1, v2, v3);
-        
+		parseOscMessage(m); 
 	}
 
 	//    if (bKissing)
@@ -145,15 +102,15 @@ void ofApp::update()
 	if (bDemo) {
 		for (int i = 0; i < 5; i++) {
 			iCounter++;
-			addValueToChannelBuffer(IMEC_EEG_DATA, "/EEG_1/channel_1", std::sin(iCounter / 10.));
-			addValueToChannelBuffer(IMEC_EEG_DATA, "/EEG_1/channel_2", std::sin(iCounter / 12.));
-			addValueToChannelBuffer(IMEC_EEG_DATA, "/EEG_1/channel_3", std::sin(iCounter / 13.));
-			addValueToChannelBuffer(IMEC_EEG_DATA, "/EEG_1/channel_4", std::sin(iCounter / 14.));
+			addSample(FIRST, 0, 0.3 * std::sin(iCounter / 10.));
+			addSample(FIRST, 1, 0.3 * std::sin(iCounter / 12.));
+			addSample(FIRST, 2, 0.3 * std::sin(iCounter / 13.));
+			addSample(FIRST, 3, 0.3 * std::sin(iCounter / 14.));
 
-			addValueToChannelBuffer(IMEC_EEG_DATA, "/EEG_0/channel_1", std::sin(iCounter / 15.));
-			addValueToChannelBuffer(IMEC_EEG_DATA, "/EEG_0/channel_2", std::sin(iCounter / 13.));
-			addValueToChannelBuffer(IMEC_EEG_DATA, "/EEG_0/channel_3", std::sin(iCounter / 11.));
-			addValueToChannelBuffer(IMEC_EEG_DATA, "/EEG_0/channel_4", std::sin(iCounter / 9.));
+			addSample(SECOND, 0, 0.3 * std::sin(iCounter / 15.));
+			addSample(SECOND, 1, 0.3 * std::sin(iCounter / 13.));
+			addSample(SECOND, 2, 0.3 * std::sin(iCounter / 11.));
+			addSample(SECOND, 3, 0.3 * std::sin(iCounter /  9.));
 		}
 	}
 
@@ -327,34 +284,28 @@ void addToPolyline(float value, ofPolyline& pl, int yOffset)
 }
 
 /***************************************************************
-* Determines the channel and adds the value to the associated buffer
+* Parses the incoming osc message and adds values to appropriate buffers
 **************************************************************/
-void  ofApp::addMultichannelSample(DataTypes dataType, EEGDevice device, float v0, float v1, float v2, float v3) {
-    switch(dataType) {
-        case MUSE_EEG_DATA:
-            addSample(device, 0, v0);
-            addSample(device, 1, v1);
-            addSample(device, 2, v2);
-            addSample(device, 3, v3);
-            break;
-    }
-}
-
-void ofApp::addValueToChannelBuffer(DataTypes dataType, const string& destination, float value)
+void ofApp::parseOscMessage(ofxOscMessage m)
 {
-	switch (dataType)
-	{
-	case IMEC_EEG_DATA:
-		int headsetId = -1;
-		if (startsWith(destination, "/EEG_0/"))
+
+	// get the current pattern
+	string pattern = m.getAddress();
+
+	if (startsWith(pattern, "/EEG_")) {
+		// get the value of the pattern
+		float value = getOscArg(m, 0);
+
+		EEGDevice headsetId = NONE;
+		if (startsWith(pattern, "/EEG_0/"))
 		{
-			headsetId = 0;
+			headsetId = FIRST;
 		}
-		else if (startsWith(destination, "/EEG_1/"))
+		else if (startsWith(pattern, "/EEG_1/"))
 		{
-			headsetId = 1;
+			headsetId = SECOND;
 		}
-		else if (startsWith(destination, eegSettings.markersPattern))
+		else if (startsWith(pattern, eegSettings.markersPattern))
 		{
 			//                bKissing = bool(value); was used for changing background-color
 
@@ -383,10 +334,10 @@ void ofApp::addValueToChannelBuffer(DataTypes dataType, const string& destinatio
 			}
 		}
 		// check if a valid headset was found
-		if (headsetId != -1)
+		if (headsetId != NONE && headsetId <= eegSettings.nrOfHeadsets)
 		{
 			// now determine the channel
-			string channel = destination.substr(strlen("/EEG_0/"));
+			string channel = pattern.substr(strlen("/EEG_0/"));
 			int chanId = -1;
 
 			if (startsWith(channel, eegSettings.channelPatternPrefix))
@@ -398,9 +349,9 @@ void ofApp::addValueToChannelBuffer(DataTypes dataType, const string& destinatio
 
 			if (chanId >= 0 && chanId <= eegSettings.nrOfChannels)
 			{
-				//fSamples[headsetId][chanId][iSampleCounter] = value;
-				iSampleCounters[headsetId][chanId] = (iSampleCounters[headsetId][chanId] + 1) % eegSettings.nrOfSamples;
-				fSamples[headsetId][chanId][iSampleCounters[headsetId][chanId]] = value;
+				// Add the sample to the buffer
+				addSample(headsetId, chanId, value);
+
 				if (!headsetId && (chanId == 3))
 				{
 					if (bStartKiss)
@@ -426,10 +377,70 @@ void ofApp::addValueToChannelBuffer(DataTypes dataType, const string& destinatio
 			}
 			else
 			{
-				cout << "got bad channel for :" << destination << " | " << channel.substr(eegSettings.channelPatternPrefix.length(), 1) << endl;
+				cout << "got bad channel for :" << pattern << " | " << channel.substr(eegSettings.channelPatternPrefix.length(), 1) << endl;
 			}
 		}
 	}
+	else if (startsWith(pattern, "/muse")) {
+
+		// seems like values coming from MUSE are 10-bit (lick finger, stick finger in air, guess scaling factor)
+		float scale = 1 << 10; // 1024
+
+		// get the value of the pattern
+		float v0 = getOscArg(m, 0) / scale;
+		float v1 = getOscArg(m, 1) / scale;
+		float v2 = getOscArg(m, 2) / scale;
+		float v3 = getOscArg(m, 3) / scale;
+
+		EEGDevice device = NONE;
+		if (pattern.find("/muse/1/eeg") != string::npos) {
+			device = FIRST;
+		}
+		else if (pattern.find("/muse/2/eeg") != string::npos) {
+			device = SECOND;
+		}
+		else {
+			// unknonwn message, we print the address for debugging purposes
+			string msg_string;
+			msg_string = pattern;
+			msg_string += ": ";
+			for (int i = 0; i < m.getNumArgs(); i++) {
+				// get the argument type
+				msg_string += m.getArgTypeName(i);
+				msg_string += ":";
+				// display the argument - make sure we get the right type
+				if (m.getArgType(i) == OFXOSC_TYPE_INT32) {
+					msg_string += ofToString(m.getArgAsInt32(i));
+				}
+				else if (m.getArgType(i) == OFXOSC_TYPE_FLOAT) {
+					msg_string += ofToString(m.getArgAsFloat(i));
+				}
+				else if (m.getArgType(i) == OFXOSC_TYPE_STRING) {
+					msg_string += m.getArgAsString(i);
+				}
+				else {
+					msg_string += "unknown";
+				}
+			}
+
+			ofLogNotice() << "unknown OSC >> " << msg_string;
+		}
+
+		if (device != NONE) {
+			addSample(device, 0, v0);
+			addSample(device, 1, v1);
+			addSample(device, 2, v2);
+			addSample(device, 3, v3);
+		}
+	}
+}
+
+void ofApp::addSample(EEGDevice device, int ch, float val) {
+	if (device < 0 || device > eegSettings.nrOfHeadsets) return;
+	if (ch < 0 || ch > eegSettings.nrOfChannels) return;
+
+	iSampleCounters[device][ch] = (iSampleCounters[device][ch] + 1) % eegSettings.nrOfSamples;
+	fSamples[device][ch][iSampleCounters[device][ch]] = val;
 }
 
 void ofApp::saveScreenshot(ofImage image, string filename)
@@ -540,10 +551,10 @@ void ofApp::keyPressed(int key)
 		saveScreenshot(screenImg, "screenshot.png");
 		break;
     case '[':
-        fSignalScalingFactor -= 1/100;
+        fSignalScalingFactor -= 1.0/100.0;
         break;
     case ']':
-        fSignalScalingFactor += 1/100;
+        fSignalScalingFactor += 1.0/100.0;
         break;
 	case 'v':
 		printVectorImage();

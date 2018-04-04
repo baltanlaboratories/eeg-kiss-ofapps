@@ -36,11 +36,6 @@ private:
         SECOND = 1
     };
     
-    enum DataTypes {
-        IMEC_EEG_DATA,
-        MUSE_EEG_DATA
-    };
-    
 	struct EEGSettings {
 		int nrOfHeadsets = 2;
 		int nrOfChannels = 4;
@@ -78,20 +73,10 @@ private:
     float       fSignalScalingFactor;
 
 	float getOscArg(const ofxOscMessage& m, int argIndex);
-	void  addValueToChannelBuffer(DataTypes dataType, const string& pat, float value);
-    void  addMultichannelSample(DataTypes dataType, EEGDevice device, float vch1, float vch2, float vch3, float vch4);
+	void  parseOscMessage(ofxOscMessage m);
 	void  saveScreenshot(ofImage image, string filename);
 	void  printVectorImage();
-    
-    /// add sample to correct device-channel buffer
-    void addSample(EEGDevice device, int ch, float val) {
-        
-        if(device > eegSettings.nrOfHeadsets) return;
-        if(ch > eegSettings.nrOfChannels) return;
-        
-        iSampleCounters[device][ch] = (iSampleCounters[device][ch] + 1) % eegSettings.nrOfSamples;
-        fSamples[device][ch][iSampleCounters[device][ch]] = val;
-    }
+	void  addSample(EEGDevice device, int ch, float val);
 
 	ofxOscReceiver	receiver;
 	ofImage			screenImg;
