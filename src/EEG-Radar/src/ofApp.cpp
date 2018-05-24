@@ -34,9 +34,11 @@ void ofApp::setup() {
 	fMagnification = appSettings.magnification;
 
 	// Initialize an multi-dimensional array to hold the EEG samples
+	iSampleCounters = new int*[eegSettings.nrOfHeadsets];
 	fSamples = new float**[eegSettings.nrOfHeadsets];
 
 	for (int i = 0; i < eegSettings.nrOfHeadsets; i++) {
+		iSampleCounters[i] = new int[eegSettings.nrOfChannels]();
 		fSamples[i] = new float*[eegSettings.nrOfChannels];
 		for (int j = 0; j < eegSettings.nrOfChannels; j++) {
 			fSamples[i][j] = new float[eegSettings.nrOfSamples]();
@@ -60,8 +62,10 @@ void ofApp::exit(ofEventArgs &args) {
 		}
 		delete[] fSamples[i];
 		fSamples[i] = NULL;
+		delete[] iSampleCounters[i];
 	}
 	delete[] fSamples;
+	delete[] iSampleCounters;
 }
 
 //--------------------------------------------------------------
@@ -305,6 +309,18 @@ void ofApp::parseOscMessage(ofxOscMessage m)
 		{
 			headsetId = SECOND;
 		}
+		else if (startsWith(pattern, "/EEG_2/"))
+		{
+			headsetId = THIRD;
+		}
+		else if (startsWith(pattern, "/EEG_3/"))
+		{
+			headsetId = FOURTH;
+		}
+		else if (startsWith(pattern, "/EEG_4/"))
+		{
+			headsetId = FIFTH;
+		}
 		else if (startsWith(pattern, eegSettings.markersPattern))
 		{
 			//                bKissing = bool(value); was used for changing background-color
@@ -399,6 +415,15 @@ void ofApp::parseOscMessage(ofxOscMessage m)
 		else if (pattern.find("/muse/2/eeg") != string::npos) {
 			device = SECOND;
 		}
+		else if (pattern.find("/muse/3/eeg") != string::npos) {
+			device = THIRD;
+		}
+		else if (pattern.find("/muse/4/eeg") != string::npos) {
+			device = FOURTH;
+		}
+		else if (pattern.find("/muse/5/eeg") != string::npos) {
+			device = FIFTH;
+		}
 		else {
 			// unknonwn message, we print the address for debugging purposes
 			string msg_string;
@@ -436,8 +461,8 @@ void ofApp::parseOscMessage(ofxOscMessage m)
 }
 
 void ofApp::addSample(EEGDevice device, int ch, float val) {
-	if (device < 0 || device > eegSettings.nrOfHeadsets) return;
-	if (ch < 0 || ch > eegSettings.nrOfChannels) return;
+	if (device < 0 || device >= eegSettings.nrOfHeadsets) return;
+	if (ch < 0 || ch >= eegSettings.nrOfChannels) return;
 
 	iSampleCounters[device][ch] = (iSampleCounters[device][ch] + 1) % eegSettings.nrOfSamples;
 	fSamples[device][ch][iSampleCounters[device][ch]] = val;

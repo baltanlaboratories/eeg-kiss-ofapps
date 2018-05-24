@@ -30,14 +30,17 @@ private:
 	};
 
     // abstraction for EEG devices within the installation
-    enum EEGDevice {
-        NONE = -1,
-        FIRST = 0,
-        SECOND = 1
+	enum EEGDevice {
+		NONE = -1,
+		FIRST = 0,
+		SECOND = 1,
+		THIRD = 2,
+		FOURTH = 3,
+		FIFTH = 4
     };
     
 	struct EEGSettings {
-		int nrOfHeadsets = 2;
+		int nrOfHeadsets = 5;
 		int nrOfChannels = 4;
 		int nrOfSamples = 1024;
 
@@ -81,7 +84,7 @@ private:
 	ofxOscReceiver	receiver;
 	ofImage			screenImg;
 
-	int iSampleCounters[2][4];
+	int** iSampleCounters;
 
 	int		iCounter;
 	bool	bDemo;
