@@ -295,7 +295,7 @@ void ofApp::parseOscMessage(ofxOscMessage m)
 
 	// get the current pattern
 	string pattern = m.getAddress();
-
+	float value = getOscArg(m, 0);
 	if (startsWith(pattern, "/EEG_")) {
 		// get the value of the pattern
 		float value = getOscArg(m, 0);
@@ -321,34 +321,7 @@ void ofApp::parseOscMessage(ofxOscMessage m)
 		{
 			headsetId = FIFTH;
 		}
-		else if (startsWith(pattern, eegSettings.markersPattern))
-		{
-			//                bKissing = bool(value); was used for changing background-color
-
-			// Stop-kiss value = 0/4096 = 0.0
-			// Start-kiss value = 1/4096 = 0.000244
-			// Point-of-interest value = 2/4096 = 0.000488
-			if ((value > 0.0) && (value < 0.0003))
-			{
-				if (!bStartKiss)
-				{
-					bStartKiss = true;
-					iStartKissIndex = iSampleCounters[0][3];
-					iStartKissCount = 0;
-					iCaptureStartKissCount++;
-				}
-			}
-			else if (value == 0.0)
-			{
-				if (!bStopKiss)
-				{
-					bStopKiss = true;
-					iStopKissIndex = iSampleCounters[0][3];
-					iStopKissCount = 0;
-					iCaptureStopKissCount++;
-				}
-			}
-		}
+	
 		// check if a valid headset was found
 		if (headsetId != NONE && headsetId <= eegSettings.nrOfHeadsets)
 		{
@@ -456,6 +429,34 @@ void ofApp::parseOscMessage(ofxOscMessage m)
 			addSample(device, 1, v1);
 			addSample(device, 2, v2);
 			addSample(device, 3, v3);
+		}
+	}
+	else if (startsWith(pattern, eegSettings.markersPattern))
+	{
+		//                bKissing = bool(value); was used for changing background-color
+
+		// Stop-kiss value = 0/4096 = 0.0
+		// Start-kiss value = 1/4096 = 0.000244
+		// Point-of-interest value = 2/4096 = 0.000488
+		if ((value > 0.0) && (value < 0.0003))
+		{
+			if (!bStartKiss)
+			{
+				bStartKiss = true;
+				iStartKissIndex = iSampleCounters[0][3];
+				iStartKissCount = 0;
+				iCaptureStartKissCount++;
+			}
+		}
+		else if (value == 0.0)
+		{
+			if (!bStopKiss)
+			{
+				bStopKiss = true;
+				iStopKissIndex = iSampleCounters[0][3];
+				iStopKissCount = 0;
+				iCaptureStopKissCount++;
+			}
 		}
 	}
 }
