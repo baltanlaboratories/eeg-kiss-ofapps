@@ -82,7 +82,7 @@ private:
 	float getOscArg(const ofxOscMessage& m, int argIndex);
 	void  parseOscMessage(ofxOscMessage m);
 	void  saveScreenshot(ofImage image, string filename);
-	void  printVectorImage();
+	void  printVectorImage(bool fade);
 	void  addSample(EEGDevice device, int ch, float val);
 
 	ofxOscReceiver	receiver;

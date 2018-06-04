@@ -18,15 +18,15 @@ void ImageExporter::exportVectorImages(
 
 	for (int hs = 0; hs < data.size(); hs++)
 	{
-        std::stringstream ss;
-        
+		std::stringstream ss;
+
 		std::cout << "headset: " << hs << std::endl;
 		auto head = data.at(hs);
 
 		//char iStr[4];
 		//itoa(hs, iStr, 4);
-        ss << "screenshot-" << timestampString << "_" << hs << ".svg";
-        std::string filename = ss.str();
+		ss << "screenshot-" << timestampString << "_" << hs << ".svg";
+		std::string filename = ss.str();
 		double SIZE = 4096;
 		double l_ratio = 2.2;
 
@@ -40,7 +40,10 @@ void ImageExporter::exportVectorImages(
 		double l_centerX = SIZE / 2;
 		double l_centerY = SIZE / 2;
 
-		int samplesToFade = samplesToFadeHs[hs];
+		int samplesToFade = 0;
+		if (hs < samplesToFadeHs.size()) {
+			samplesToFade = samplesToFadeHs[hs];
+		}
 
 		for (int channel = 0; channel < head.size(); channel++)
 		{
@@ -52,7 +55,9 @@ void ImageExporter::exportVectorImages(
 			for (int i = samplesToFade; i < chan.size() - 1; i++)
 			{
 				int alpha = (i - samplesToFade) * 255 / (chan.size() - samplesToFade);
-
+				if (samplesToFade == 0) {
+					alpha = 255;
+				}
 
 				if (hs)
 					renderer.setColor(ofColor::white, alpha);

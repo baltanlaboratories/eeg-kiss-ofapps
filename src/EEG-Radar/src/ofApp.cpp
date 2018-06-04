@@ -238,7 +238,8 @@ void ofApp::draw()
 		ss << "(d) decrease magnification" << endl;
 		ss << "(r) reset magnification" << endl;
 		ss << "(c) capture screenshot" << endl;
-		ss << "(v) export separate images" << endl;
+		ss << "(v) export separate images with fade" << endl;
+		ss << "(b) export separate images without fade" << endl;
         ss << "([) decrease signal scaling factor" << endl;
         ss << "(]) increase signal scaling factor" << endl;
 #ifdef _DEBUG
@@ -524,9 +525,9 @@ void ofApp::saveScreenshot(ofImage image, string filename)
 	image.saveImage(path);
 }
 
-void ofApp::printVectorImage()
+void ofApp::printVectorImage(bool fade)
 {
-	std::thread thread([this] {
+	std::thread thread([this, fade] {
 
 		std::cout << eegSettings.nrOfHeadsets << " " << eegSettings.nrOfChannels << " " << eegSettings.nrOfSamples << std::endl;
 		std::vector<std::vector<std::vector<float>>> data;
@@ -544,7 +545,7 @@ void ofApp::printVectorImage()
 		}
 
 		m_threadCounter++;
-		ImageExporter::exportVectorImages(data, fRadius, fMinRadius, fMagnification, samplesToFade, counters);
+		ImageExporter::exportVectorImages(data, fRadius, fMinRadius, fMagnification, fade ? samplesToFade : std::vector<int>(), counters);
 		m_threadCounter--;
 	});
 	thread.detach();
@@ -624,7 +625,10 @@ void ofApp::keyPressed(int key)
         fSignalScalingFactor += 1.0/100.0;
         break;
 	case 'v':
-		printVectorImage();
+		printVectorImage(true);
+		break;
+	case 'b':
+		printVectorImage(false);
 		break;
 #ifdef _DEBUG
 	case 'p':
