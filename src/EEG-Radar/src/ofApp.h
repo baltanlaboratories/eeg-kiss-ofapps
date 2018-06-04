@@ -36,17 +36,21 @@ private:
 		SECOND = 1,
 		THIRD = 2,
 		FOURTH = 3,
-		FIFTH = 4
+		FIFTH = 4,
+		SIXTH = 5
     };
     
 	struct EEGSettings {
-		int nrOfHeadsets = 5;
+		int nrOfHeadsets = 6;
+		int nrOfKissers = 2; //2 out of the 5 are kissers.
 		int nrOfChannels = 4;
-		int nrOfSamples = 1024;
+		int nrOfSamples = 2560;
 
 		string headsetPatternPrefix = "/EEG_";
 		string channelPatternPrefix = "channel_";
 		string markersPattern = "/markers";
+		std::vector<ofColor> colors = {ofColor::green, ofColor::white, ofColor(198,43,229), ofColor::orangeRed, ofColor::red, ofColor::purple};
+		float maxAmplitude = 0.25; // maximum amplitude
 	};
 
 	ApplicationSettings appSettings;
@@ -68,7 +72,7 @@ private:
 	int         iStopKissCount;
 	int         iCaptureStopKissCount;
 	bool        bInfoText;      // display text UI or not
-	int         samplesToFade;  // number of samples to fadeout (these are skipped during draw())
+	std::vector<int>         samplesToFade;  // number of samples to fadeout (these are skipped during draw())
 	int         iFrameRate;     // max frame rate
 	float       fMagnification; // magnification factor of the radar
 	float       initialMagnification;
@@ -85,6 +89,7 @@ private:
 	ofImage			screenImg;
 
 	int** iSampleCounters;
+	std::vector<bool> hsHasData;
 
 	int		iCounter;
 	bool	bDemo;

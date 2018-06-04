@@ -38,12 +38,18 @@ void ofApp::setup() {
 	fSamples = new float**[eegSettings.nrOfHeadsets];
 
 	for (int i = 0; i < eegSettings.nrOfHeadsets; i++) {
+		int fraction = i < eegSettings.nrOfKissers ? 0 : i - eegSettings.nrOfKissers + 1;
+		samplesToFade.push_back(eegSettings.nrOfSamples / (eegSettings.nrOfHeadsets - eegSettings.nrOfKissers + 1));
+		hsHasData.push_back(false);
 		iSampleCounters[i] = new int[eegSettings.nrOfChannels]();
 		fSamples[i] = new float*[eegSettings.nrOfChannels];
 		for (int j = 0; j < eegSettings.nrOfChannels; j++) {
 			fSamples[i][j] = new float[eegSettings.nrOfSamples]();
+
+			iSampleCounters[i][j] = eegSettings.nrOfSamples / (eegSettings.nrOfHeadsets - eegSettings.nrOfKissers + 1) * fraction;
 		}
 	}
+
 
 	// Listen on the given port
 	cout << "Listening for osc messages on port " << kOscReceivePort << endl;
@@ -126,6 +132,10 @@ void ofApp::draw()
 	std::string timestampString;
 	for (int hs = 0; hs < eegSettings.nrOfHeadsets; hs++)
 	{
+		if (!hsHasData[hs]) {
+			continue;
+		}
+		int samplesToFade = this->samplesToFade[hs];
 		for (int channel = 0; channel < eegSettings.nrOfChannels; channel++)
 		{
 			float fInnerRadius = fMinRadius + channel * fRadius * 1.25;
@@ -134,12 +144,8 @@ void ofApp::draw()
 			{
 				int alpha = (i - samplesToFade) * 255 / (eegSettings.nrOfSamples - samplesToFade);
 
-				if (hs)
-					//                    (bKissing) ? ofSetColor(ofColor::pink, alpha) : ofSetColor(ofColor::white, alpha);
-					ofSetColor(ofColor::white, alpha);
-				else
-					//                    (bKissing) ? ofSetColor(ofColor::blue, alpha) : ofSetColor(ofColor::green,alpha);
-					ofSetColor(ofColor::green, alpha);
+				ofColor color = eegSettings.colors[hs];
+				ofSetColor(color, alpha);
 
 				int sampleIndex = (i + iSampleCounters[hs][channel] + eegSettings.nrOfSamples) % eegSettings.nrOfSamples;
 				float s1 = fSamples[hs][channel][sampleIndex];
@@ -216,13 +222,16 @@ void ofApp::draw()
 	if (bInfoText) {
 		stringstream ss;
 		ss << "Framerate: " << ofToString(ofGetFrameRate(), 0)
-			<< " Fade: " << samplesToFade
+			<< " Fade kissers: " << samplesToFade[0]
+			<< " Fade others: " << (eegSettings.nrOfHeadsets >=2 ? samplesToFade[2] : 0)
 			<< " Magnification: " << ofToString(fMagnification, 2)
             << " Signal scaling: " << ofToString(fSignalScalingFactor, 2) << endl;
 		ss << "(i) toggle this menu" << endl;
 		ss << "(f) toggle full screen" << endl;
-		ss << "(q) increase fade" << endl;
-		ss << "(a) decrease fade" << endl;
+		ss << "(q) increase fade for kissers" << endl;
+		ss << "(a) decrease fade fpr kissers" << endl;
+		ss << "(t) increase fade for others" << endl;
+		ss << "(g) decrease fade fpr others" << endl;
 		ss << "(w) increase max framerate" << endl;
 		ss << "(s) decrease max framerate" << endl;
 		ss << "(e) increase magnification" << endl;
@@ -320,6 +329,10 @@ void ofApp::parseOscMessage(ofxOscMessage m)
 		else if (startsWith(pattern, "/EEG_4/"))
 		{
 			headsetId = FIFTH;
+		} 
+		else if (startsWith(pattern, "/EEG_5/"))
+		{
+			headsetId = SIXTH;
 		}
 	
 		// check if a valid headset was found
@@ -397,6 +410,9 @@ void ofApp::parseOscMessage(ofxOscMessage m)
 		else if (pattern.find("/muse/5/eeg") != string::npos) {
 			device = FIFTH;
 		}
+		else if (pattern.find("/muse/6/eeg") != string::npos) {
+			device = SIXTH;
+		}
 		else {
 			// unknonwn message, we print the address for debugging purposes
 			string msg_string;
@@ -464,6 +480,11 @@ void ofApp::parseOscMessage(ofxOscMessage m)
 void ofApp::addSample(EEGDevice device, int ch, float val) {
 	if (device < 0 || device >= eegSettings.nrOfHeadsets) return;
 	if (ch < 0 || ch >= eegSettings.nrOfChannels) return;
+	hsHasData[device] = true;
+
+
+	const float MAX_AMPLITUDE = eegSettings.maxAmplitude;
+	val = MIN(MAX(val, -MAX_AMPLITUDE), MAX_AMPLITUDE);
 
 	iSampleCounters[device][ch] = (iSampleCounters[device][ch] + 1) % eegSettings.nrOfSamples;
 	fSamples[device][ch][iSampleCounters[device][ch]] = val;
@@ -541,14 +562,34 @@ void ofApp::keyPressed(int key)
 		// toggle info on screen
 		bInfoText = !bInfoText;
 		break;
-	case 'q':
+	case 'q': {
 		// increase fade
-		if (samplesToFade <= eegSettings.nrOfSamples - 10) samplesToFade += 10;
+		for (int hs = 0; hs < 2 && hs < eegSettings.nrOfHeadsets; hs++) {
+			if (samplesToFade[hs] <= eegSettings.nrOfSamples - 10) samplesToFade[hs] += 10;
+		}
 		break;
-	case 'a':
+	}
+	case 'a': {
 		// decrease fade
-		if (samplesToFade >= 10) samplesToFade -= 10;
+		for (int hs = 0; hs < 2 && hs < eegSettings.nrOfHeadsets; hs++) {
+			if (samplesToFade[hs] >= 10) samplesToFade[hs] -= 10;
+		}
 		break;
+	}
+	case 't': {
+		// increase fade
+		for (int hs = 2; hs < eegSettings.nrOfHeadsets; hs++) {
+			if (samplesToFade[hs] <= eegSettings.nrOfSamples - 10) samplesToFade[hs] += 10;
+		}
+		break;
+	}
+	case 'g': {
+		// decrease fade
+		for (int hs = 2; hs < eegSettings.nrOfHeadsets; hs++) {
+			if (samplesToFade[hs] >= 10) samplesToFade[hs] -= 10;
+		}
+		break;
+	}
 	case 'w':
 		// increase framerate
 		iFrameRate++;

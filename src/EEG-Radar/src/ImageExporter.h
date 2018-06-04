@@ -8,7 +8,7 @@ public:
 		,float fRadius
 		,float fMinRadius
 		,float fMagnification
-		,int samplesToFade, std::vector<std::vector<int>> counters);
+		,std::vector<int> samplesToFade, std::vector<std::vector<int>> counters);
 
 protected:
 	static int m_activeThreads;

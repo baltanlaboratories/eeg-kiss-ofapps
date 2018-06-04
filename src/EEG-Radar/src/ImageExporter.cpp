@@ -8,7 +8,7 @@ void ImageExporter::exportVectorImages(
 	std::vector<std::vector<std::vector<float>>> data
 	,float fRadius
 	,float fMinRadius
-	,float fMagnification, int samplesToFade, std::vector<std::vector<int>> counters
+	,float fMagnification, std::vector<int> samplesToFadeHs, std::vector<std::vector<int>> counters
 )
 {
 	std::cout << "Start: " << data.size() << std::endl;
@@ -40,6 +40,8 @@ void ImageExporter::exportVectorImages(
 		double l_centerX = SIZE / 2;
 		double l_centerY = SIZE / 2;
 
+		int samplesToFade = samplesToFadeHs[hs];
+
 		for (int channel = 0; channel < head.size(); channel++)
 		{
 			auto chan = head.at(channel);
@@ -47,10 +49,10 @@ void ImageExporter::exportVectorImages(
 			std::cout << "  channel: " << channel << ": " << chan.size() << std::endl;
 
 			float fInnerRadius = l_minRadius + channel * l_radius * 1.25;
-
 			for (int i = samplesToFade; i < chan.size() - 1; i++)
 			{
 				int alpha = (i - samplesToFade) * 255 / (chan.size() - samplesToFade);
+
 
 				if (hs)
 					renderer.setColor(ofColor::white, alpha);
